@@ -1,7 +1,7 @@
 $reflinkExe = "$env:LOCALAPPDATA\Programs\.bin\reflink.exe"
 
 if ($args.Count -lt 2 -or $args.Count -gt 3) {
-	Write-Output "Too few or too many arguments, make sure folders are properly quoted"
+	Write-Output "Error: Too few or too many arguments, make sure folders are properly quoted"
 	Write-Output "Usage: $(${MyInvocation}.InvocationName) <source> <target> [dry run delay in ms, implies dry run]"
 	exit 1
 }
@@ -14,24 +14,23 @@ if ($target -notmatch "[\\/]$") { $target += "\" }
 $source = [IO.Path]::GetFullPath($source)
 $target = [IO.Path]::GetFullPath($target)
 if (-not (Test-Path $source)) {
-	Write-Output "Source directory '$source' does not exist"
+	Write-Output "Error: Source directory '$source' does not exist"
 	exit 1
 } elseif (Test-Path $target) {
-	Write-Output "Target path '$target' already exists"
+	Write-Output "Error: Target path '$target' already exists"
 	exit 1
 }
 Write-Output "Will replicate directory structure and reflink files:`n`tSource (Existing Directory): '$source'`n`tTarget (New Snapshot Directory): '$target'"
-if ($args[2]) {
+if ($null -ne $args[2]) {
 	$dryRun = $true
 	$artificalDelay = $args[2]
 	if ($artificalDelay -notmatch "^[0-9]+$") {
-		Write-Output "Dry run delay must be a positive integer"
+		Write-Output "Error: Dry run delay must be a positive integer or '0' for no delay"
 		exit 1
 	}
-	Write-Output "Will dry run with ${artificalDelay}ms delay between each item"
+	Write-Output "`tWill dry run with ${artificalDelay}ms delay between each item"
 } else {
 	$dryRun = $false
-	Write-Output "To dry run, pass a third argument (positive integer) to specify the artifical delay in milliseconds between each item"
 }
 $confirm = Read-Host "Proceed? (y/N)"
 if ($confirm -ne "y") {
@@ -42,7 +41,7 @@ if ($confirm -ne "y") {
 Write-Progress -Activity "Enumerating Items" -Status "Enumerating items in '${source}'..." -PercentComplete -1
 $items = Get-ChildItem -Path $source -Recurse -ErrorVariable itemsErr
 if ($itemsErr) {
-	Write-Output "Not all items could be enumerated due to $(${itemsErr}.Count) errors:"
+	Write-Output "Error: Not all items could be enumerated due to $(${itemsErr}.Count) errors:"
 	foreach ($err in $itemsErr) {
 		Write-Output "`t${err}"
 	}
